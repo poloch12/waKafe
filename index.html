@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="cs">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Systém Evidence Kávy</title>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <style>
+    body {
+      background-color: #eaf8f2;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      color: #333;
+    }
+
+    .container {
+      max-width: 700px;
+      margin-top: 30px;
+      padding: 20px;
+      border-radius: 12px;
+      background-color: #ffffff;
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    h2 {
+      color: #4caf50;
+      font-weight: 600;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .btn-custom {
+      background-color: #4caf50;
+      color: white;
+      width: 100%;
+      padding: 10px;
+      font-size: 16px;
+      border: none;
+      border-radius: 4px;
+    }
+
+    .btn-custom:hover {
+      background-color: #388e3c;
+    }
+
+    .btn-secondary-custom {
+      background-color: #81c784;
+      color: white;
+      width: 100%;
+      padding: 10px;
+      font-size: 16px;
+      border: none;
+      border-radius: 4px;
+    }
+
+    .btn-secondary-custom:hover {
+      background-color: #66bb6a;
+    }
+
+    .btn-info {
+      background-color: #4db6ac;
+      color: white;
+      width: 100%;
+      padding: 10px;
+      font-size: 16px;
+      border: none;
+      border-radius: 4px;
+    }
+
+    .btn-info:hover {
+      background-color: #00897b;
+    }
+
+    .radio-label {
+      font-size: 1rem;
+      margin-bottom: 10px;
+      font-weight: 500;
+      color: #555;
+    }
+
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+
+    .radio-option {
+      display: flex;
+      align-items: center;
+      padding: 5px 0;
+    }
+
+    .radio-option input {
+      margin-right: 10px;
+    }
+
+    .form-control-range {
+      background-color: #c8e6c9;
+    }
+
+    .slider-label {
+      font-size: 0.875rem;
+      color: #555;
+      margin-top: 5px;
+    }
+
+    .mt-3 {
+      margin-top: 1rem !important;
+    }
+
+    .mt-4 {
+      margin-top: 1.5rem !important;
+    }
+
+    #result {
+      border-top: 1px solid #ddd;
+      margin-top: 20px;
+      padding-top: 20px;
+    }
+
+    ul {
+      padding-left: 20px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h2>Evidence Vašich Nápojů</h2>
+    <form id="drinkForm">
+      <div class="form-group">
+        <label class="radio-label">Vyberte jméno:</label>
+        <div id="personSelect"></div>
+      </div>
+      <div id="drinkFields"></div>
+      <button type="submit" class="btn btn-custom">Odeslat</button>
+    </form>
+
+    <button id="showMonthlyReport" class="btn btn-secondary-custom mt-3">Zobrazit Měsíční Přehled</button>
+
+    <div class="form-group mt-4">
+      <label for="monthSelect">Vyberte měsíc pro přehled:</label>
+      <select class="form-control" id="monthSelect">
+        <option value="1">Leden</option>
+        <option value="2">Únor</option>
+        <option value="3">Březen</option>
+        <option value="4">Duben</option>
+        <option value="5">Květen</option>
+        <option value="6">Červen</option>
+        <option value="7">Červenec</option>
+        <option value="8">Srpen</option>
+        <option value="9">Září</option>
+        <option value="10">Říjen</option>
+        <option value="11">Listopad</option>
+        <option value="12">Prosinec</option>
+      </select>
+    </div>
+
+    <button id="showDrinkList" class="btn btn-info">Zobrazit Seznam Nápojů</button>
+
+    <div id="result" class="mt-4"></div>
+  </div>
+
+  <script>
+    const apiUsername = 'coffe';
+    const apiPassword = 'kafe';
+
+    function sendRequest(url, method = 'GET', body = null) {
+      return fetch(url, {
+        method: method,
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Authorization': 'Basic ' + btoa(apiUsername + ':' + apiPassword)
+        },
+        body: body ? body : null
+      })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Network response was not ok');
+          }
+          return response.json();
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+      initializeForm();
+    });
+
+    function initializeForm() {
+      sendRequest('http://127.0.0.1:3000/getPeopleList')
+        .then(data => {
+          const personSelect = document.getElementById('personSelect');
+          personSelect.innerHTML = '';
+          Object.values(data).forEach(person => {
+            const optionDiv = document.createElement('div');
+            optionDiv.classList.add('radio-option');
+
+            const option = document.createElement('input');
+            option.type = 'radio';
+            option.name = 'person';
+            option.value = person.ID;
+            option.required = true;
+
+            const label = document.createElement('label');
+            label.textContent = person.name;
+
+            optionDiv.appendChild(option);
+            optionDiv.appendChild(label);
+            personSelect.appendChild(optionDiv);
+          });
+        })
+        .catch(error => console.error('Error loading people list:', error));
+
+      sendRequest('http://127.0.0.1:3000/getTypesList')
+        .then(data => {
+          const drinkFieldsDiv = document.getElementById('drinkFields');
+          drinkFieldsDiv.innerHTML = '';
+          Object.values(data).forEach(drink => {
+            const drinkDiv = document.createElement('div');
+            drinkDiv.classList.add('form-group');
+
+            const label = document.createElement('label');
+            label.textContent = `Množství (v ks) pro ${drink.typ}:`;
+
+            const slider = document.createElement('input');
+            slider.type = 'range';
+            slider.classList.add('form-control-range');
+            slider.id = `drink_${drink.ID}`;
+            slider.name = `drink_${drink.ID}`;
+            slider.min = 0;
+            slider.max = 10;
+            slider.value = 0;
+            slider.step = 1;
+
+            const sliderValue = document.createElement('span');
+            sliderValue.classList.add('slider-label');
+            sliderValue.textContent = `0 ks`;
+
+            slider.addEventListener('input', function () {
+              sliderValue.textContent = `${slider.value} ks`;
+            });
+
+            drinkDiv.appendChild(label);
+            drinkDiv.appendChild(slider);
+            drinkDiv.appendChild(sliderValue);
+            drinkFieldsDiv.appendChild(drinkDiv);
+          });
+        })
+        .catch(error => console.error('Error loading drinks list:', error));
+    }
+
+    document.getElementById('drinkForm').addEventListener('submit', function (event) {
+      event.preventDefault();
+      const person = document.querySelector('input[name="person"]:checked').value;
+
+      if (!person) {
+        alert('Všechna pole musí být vyplněna.');
+        return;
+      }
+
+      const drinkData = {};
+      const drinkInputs = document.querySelectorAll('#drinkFields input[type="range"]');
+      drinkInputs.forEach(input => {
+        const drinkId = input.id.split('_')[1];
+        const quantity = input.value;
+        if (quantity && quantity > 0) {
+          drinkData[drinkId] = quantity;
+        }
+      });
+
+      if (Object.keys(drinkData).length === 0) {
+        alert('Zadejte množství pro alespoň jeden nápoj.');
+        return;
+      }
+
+      const formattedData = `user=${person}&${Object.entries(drinkData).map(([drinkId, quantity]) => `type%5B%5D=${drinkId}&type%5B%5D=${quantity}`).join('&')}`;
+
+      sendRequest('http://127.0.0.1:3000/saveDrinks', 'POST', formattedData)
+        .then(() => {
+          alert('Data byla úspěšně odeslána!');
+        })
+        .catch(error => console.error('Error saving data:', error));
+    });
+
+    document.getElementById('showDrinkList').addEventListener('click', function () {
+      sendRequest('http://127.0.0.1:3000/getSummaryOfDrinks')
+        .then(data => {
+          let result = '<h3>Seznam vypitých nápojů</h3><ul>';
+          data.forEach(entry => {
+            const [type, quantity, name] = entry;
+            result += `<li>${name} vypil(a) ${quantity} ks ${type}</li>`;
+          });
+          result += '</ul>';
+          document.getElementById('result').innerHTML = result;
+        })
+        .catch(error => console.error('Error loading drink list:', error));
+    });
+
+    document.getElementById('showMonthlyReport').addEventListener('click', function () {
+      const monthSelect = document.getElementById('monthSelect');
+      const selectedMonthValue = monthSelect.value;
+
+      sendRequest(`http://127.0.0.1:3000/getSummaryOfDrinks&month=${selectedMonthValue}`)
+        .then(data => {
+          let result = `<h3>Seznam vypitých nápojů za měsíc ${monthSelect.options[monthSelect.selectedIndex].text}</h3><ul>`;
+          data.forEach(entry => {
+            const [type, quantity, name] = entry;
+            result += `<li>${name} vypil(a) ${quantity} ks ${type}</li>`;
+          });
+          result += '</ul>';
+          document.getElementById('result').innerHTML = result;
+        })
+        .catch(error => console.error('Error loading monthly report:', error));
+    });
+  </script>
+</body>
+
+</html>
